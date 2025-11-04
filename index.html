@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deteksi Sensor Android</title>
+    <style>
+      /* Reset dan styling dasar */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #e0e0e0;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #4ecca3;
+        font-size: 24px;
+      }
+
+      /* Video preview styling */
+      .video-container {
+        position: relative;
+        width: 100%;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+
+      #video {
+        width: 100%;
+        display: block;
+        min-height: 240px;
+      }
+
+      .video-overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      /* Tombol kontrol */
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        flex: 1;
+        min-width: 140px;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #4ecca3 0%, #3ba886 100%);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(78, 204, 163, 0.4);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        color: #fff;
+      }
+
+      .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+      }
+
+      .btn-warning {
+        background: linear-gradient(135deg, #feca57 0%, #ee9f27 100%);
+        color: #1a1a2e;
+      }
+
+      .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(254, 202, 87, 0.4);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+
+      /* Sensor data display */
+      .sensor-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .sensor-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #4ecca3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ff6b6b;
+      }
+
+      .status-indicator.active {
+        background: #4ecca3;
+        box-shadow: 0 0 10px rgba(78, 204, 163, 0.6);
+      }
+
+      .sensor-data {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .data-row {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .data-label {
+        font-size: 12px;
+        color: #a0a0a0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .data-bar-container {
+        width: 100%;
+        height: 30px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .data-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #4ecca3 0%, #3ba886 100%);
+        transition: width 0.2s ease;
+        display: flex;
+        align-items: center;
+        padding-left: 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .data-value {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+      }
+
+      .error-message {
+        background: rgba(255, 107, 107, 0.2);
+        border: 1px solid rgba(255, 107, 107, 0.4);
+        color: #ff6b6b;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 15px;
+      }
+
+      .info-message {
+        background: rgba(78, 204, 163, 0.2);
+        border: 1px solid rgba(78, 204, 163, 0.4);
+        color: #4ecca3;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 15px;
+      }
+
+      /* Status peringatan */
+      .alert-box {
+        background: rgba(254, 202, 87, 0.2);
+        border: 2px solid #feca57;
+        color: #feca57;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 14px;
+        margin-bottom: 15px;
+        text-align: center;
+        font-weight: 600;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔍 Deteksi Sensor Android</h1>
+
+      <!-- Video preview kamera -->
+      <div class="video-container">
+        <video id="video" autoplay playsinline></video>
+        <div class="video-overlay" id="videoStatus">
+          <div>📹 Status: <span id="cameraStatus">Belum dimulai</span></div>
+          <div>💡 Kecerahan: <span id="brightnessValue">-</span></div>
+          <div>🏃 Gerakan: <span id="motionValue">-</span></div>
+        </div>
+      </div>
+
+      <!-- Tombol kontrol -->
+      <div class="controls">
+        <button class="btn-primary" id="startCameraBtn">📹 Mulai Kamera</button>
+        <button class="btn-danger" id="stopCameraBtn" disabled>
+          ⏹️ Stop Kamera
+        </button>
+        <button class="btn-warning" id="toggleTorchBtn" disabled>
+          🔦 Nyalakan Senter
+        </button>
+      </div>
+
+      <!-- Alert untuk deteksi otomatis -->
+      <div id="autoAlert" style="display: none"></div>
+
+      <!-- Sensor Cahaya Ambient -->
+      <div class="sensor-section">
+        <div class="sensor-title">
+          <span class="status-indicator" id="lightStatus"></span>
+          💡 Sensor Cahaya Ambient
+        </div>
+        <div id="lightSensorData" class="sensor-data">
+          <div class="data-row">
+            <div class="data-label">Intensitas Cahaya (lux)</div>
+            <div class="data-bar-container">
+              <div class="data-bar" id="lightBar" style="width: 0%"></div>
+              <div class="data-value" id="lightValue">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sensor Orientasi -->
+      <div class="sensor-section">
+        <div class="sensor-title">
+          <span class="status-indicator" id="orientationStatus"></span>
+          🧭 Sensor Orientasi
+        </div>
+        <div id="orientationData" class="sensor-data">
+          <div class="data-row">
+            <div class="data-label">Alpha (Z-axis) - Rotasi kompas</div>
+            <div class="data-bar-container">
+              <div class="data-bar" id="alphaBar" style="width: 0%"></div>
+              <div class="data-value" id="alphaValue">-</div>
+            </div>
+          </div>
+          <div class="data-row">
+            <div class="data-label">Beta (X-axis) - Maju/mundur</div>
+            <div class="data-bar-container">
+              <div class="data-bar" id="betaBar" style="width: 0%"></div>
+              <div class="data-value" id="betaValue">-</div>
+            </div>
+          </div>
+          <div class="data-row">
+            <div class="data-label">Gamma (Y-axis) - Kiri/kanan</div>
+            <div class="data-bar-container">
+              <div class="data-bar" id="gammaBar" style="width: 0%"></div>
+              <div class="data-value" id="gammaValue">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sensor Akselerometer -->
+      <div class="sensor-section">
+        <div class="sensor-title">
+          <span class="status-indicator" id="accelStatus"></span>
+          📱 Akselerometer
+        </div>
+        <div id="accelData" class="sensor-data">
+          <div class="data-row">
+            <div class="data-label">Akselerasi X</div>
+            <div class="data-bar-container">
+              <div class="data-bar" id="accelXBar" style="width: 0%"></div>
+              <div class="data-value" id="accelXValue">-</div>
+            </div>
+          </div>
+          <div class="data-row">
+            <div class="data-label">Akselerasi Y</div>
+            <div class="data-bar-container">
+              <div class="data-bar" id="accelYBar" style="width: 0%"></div>
+              <div class="data-value" id="accelYValue">-</div>
+            </div>
+          </div>
+          <div class="data-row">
+            <div class="data-label">Akselerasi Z</div>
+            <div class="data-bar-container">
+              <div class="data-bar" id="accelZBar" style="width: 0%"></div>
+              <div class="data-value" id="accelZValue">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ==================== VARIABEL GLOBAL ====================
+      let videoStream = null;
+      let videoTrack = null;
+      let canvas = document.createElement("canvas");
+      let ctx = canvas.getContext("2d");
+      let previousFrameData = null;
+      let torchEnabled = false;
+      let lightSensor = null;
+      let isDark = false;
+      let hasMotion = false;
+
+      // Elemen DOM
+      const video = document.getElementById("video");
+      const startCameraBtn = document.getElementById("startCameraBtn");
+      const stopCameraBtn = document.getElementById("stopCameraBtn");
+      const toggleTorchBtn = document.getElementById("toggleTorchBtn");
+      const cameraStatus = document.getElementById("cameraStatus");
+      const brightnessValue = document.getElementById("brightnessValue");
+      const motionValue = document.getElementById("motionValue");
+      const autoAlert = document.getElementById("autoAlert");
+
+      // ==================== FUNGSI KAMERA ====================
+
+      // Fungsi untuk memulai kamera
+      async function startCamera() {
+        try {
+          // Minta akses kamera dengan resolusi standar
+          videoStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment", // Kamera belakang
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+
+          video.srcObject = videoStream;
+          videoTrack = videoStream.getVideoTracks()[0];
+
+          cameraStatus.textContent = "Aktif";
+          startCameraBtn.disabled = true;
+          stopCameraBtn.disabled = false;
+          toggleTorchBtn.disabled = false;
+
+          // Mulai deteksi kecerahan dan gerakan
+          video.addEventListener("play", startDetection);
+        } catch (error) {
+          console.error("Error mengakses kamera:", error);
+          cameraStatus.textContent = "Error: " + error.message;
+          alert(
+            "Gagal mengakses kamera. Pastikan Anda memberikan izin akses kamera."
+          );
+        }
+      }
+
+      // Fungsi untuk menghentikan kamera
+      function stopCamera() {
+        if (videoStream) {
+          videoStream.getTracks().forEach((track) => track.stop());
+          videoStream = null;
+          videoTrack = null;
+          video.srcObject = null;
+          cameraStatus.textContent = "Tidak aktif";
+          brightnessValue.textContent = "-";
+          motionValue.textContent = "-";
+          startCameraBtn.disabled = false;
+          stopCameraBtn.disabled = true;
+          toggleTorchBtn.disabled = true;
+
+          if (torchEnabled) {
+            torchEnabled = false;
+            toggleTorchBtn.textContent = "🔦 Nyalakan Senter";
+          }
+        }
+      }
+
+      // Fungsi toggle senter
+      async function toggleTorch() {
+        if (!videoTrack) return;
+
+        try {
+          const capabilities = videoTrack.getCapabilities();
+
+          if (!capabilities.torch) {
+            alert("Perangkat ini tidak mendukung senter/flash kamera");
+            return;
+          }
+
+          torchEnabled = !torchEnabled;
+
+          await videoTrack.applyConstraints({
+            advanced: [{ torch: torchEnabled }],
+          });
+
+          toggleTorchBtn.textContent = torchEnabled
+            ? "🔦 Matikan Senter"
+            : "🔦 Nyalakan Senter";
+        } catch (error) {
+          console.error("Error toggle senter:", error);
+          alert("Gagal mengaktifkan senter: " + error.message);
+        }
+      }
+
+      // Fungsi deteksi kecerahan dan gerakan
+      function startDetection() {
+        function detect() {
+          if (!video.srcObject) return;
+
+          // Set ukuran canvas sesuai video
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+
+          // Gambar frame video ke canvas
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          // Ambil data pixel
+          const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = frameData.data;
+
+          // Hitung kecerahan rata-rata (brightness)
+          let totalBrightness = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Formula luminance
+            const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+            totalBrightness += brightness;
+          }
+          const avgBrightness = totalBrightness / (data.length / 4);
+          brightnessValue.textContent = avgBrightness.toFixed(1);
+
+          // Tentukan apakah gelap (threshold: 50)
+          isDark = avgBrightness < 50;
+
+          // Deteksi gerakan (perbandingan dengan frame sebelumnya)
+          let motionLevel = 0;
+          if (previousFrameData) {
+            let diff = 0;
+            const prevData = previousFrameData.data;
+
+            // Bandingkan pixel dengan frame sebelumnya (sampling setiap 10 pixel)
+            for (let i = 0; i < data.length; i += 40) {
+              const r = Math.abs(data[i] - prevData[i]);
+              const g = Math.abs(data[i + 1] - prevData[i + 1]);
+              const b = Math.abs(data[i + 2] - prevData[i + 2]);
+              diff += (r + g + b) / 3;
+            }
+
+            motionLevel = diff / (data.length / 40);
+          }
+
+          motionValue.textContent = motionLevel.toFixed(2);
+
+          // Tentukan apakah ada gerakan (threshold: 5)
+          hasMotion = motionLevel > 5;
+
+          // Simpan frame ini untuk perbandingan berikutnya
+          previousFrameData = ctx.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+
+          // Cek kondisi auto-torch (gelap + ada gerakan)
+          checkAutoTorch();
+
+          // Ulangi deteksi
+          requestAnimationFrame(detect);
+        }
+
+        detect();
+      }
+
+      // Fungsi untuk auto-torch jika gelap dan ada gerakan
+      async function checkAutoTorch() {
+        if (isDark && hasMotion && !torchEnabled && videoTrack) {
+          const capabilities = videoTrack.getCapabilities();
+          if (capabilities.torch) {
+            // Tampilkan alert
+            autoAlert.style.display = "block";
+            autoAlert.className = "alert-box";
+            autoAlert.textContent =
+              "⚠️ Terdeteksi gelap + gerakan! Menyalakan senter otomatis...";
+
+            // Nyalakan senter
+            try {
+              await videoTrack.applyConstraints({
+                advanced: [{ torch: true }],
+              });
+              torchEnabled = true;
+              toggleTorchBtn.textContent = "🔦 Matikan Senter";
+
+              // Sembunyikan alert setelah 3 detik
+              setTimeout(() => {
+                autoAlert.style.display = "none";
+              }, 3000);
+            } catch (error) {
+              console.error("Error auto-torch:", error);
+            }
+          }
+        }
+      }
+
+      // ==================== SENSOR CAHAYA AMBIENT ====================
+
+      function initLightSensor() {
+        if ("AmbientLightSensor" in window) {
+          try {
+            lightSensor = new AmbientLightSensor();
+
+            lightSensor.addEventListener("reading", () => {
+              const lux = lightSensor.illuminance.toFixed(1);
+              document.getElementById("lightValue").textContent = lux + " lx";
+
+              // Bar progress (max 1000 lux untuk skala)
+              const percentage = Math.min(
+                (lightSensor.illuminance / 1000) * 100,
+                100
+              );
+              document.getElementById("lightBar").style.width =
+                percentage + "%";
+            });
+
+            lightSensor.addEventListener("error", (event) => {
+              console.error("Light sensor error:", event.error);
+              document.getElementById("lightSensorData").innerHTML =
+                '<div class="error-message">Error: ' +
+                event.error.name +
+                "</div>";
+            });
+
+            lightSensor.start();
+            document.getElementById("lightStatus").classList.add("active");
+          } catch (error) {
+            console.error("Light sensor error:", error);
+            document.getElementById("lightSensorData").innerHTML =
+              '<div class="error-message">Sensor cahaya tidak didukung atau izin ditolak</div>';
+          }
+        } else {
+          document.getElementById("lightSensorData").innerHTML =
+            '<div class="error-message">Sensor cahaya ambient tidak didukung oleh perangkat ini</div>';
+        }
+      }
+
+      // ==================== SENSOR ORIENTASI ====================
+
+      function initOrientationSensor() {
+        if (window.DeviceOrientationEvent) {
+          // Cek apakah perlu request permission (iOS 13+)
+          if (typeof DeviceOrientationEvent.requestPermission === "function") {
+            DeviceOrientationEvent.requestPermission()
+              .then((permissionState) => {
+                if (permissionState === "granted") {
+                  startOrientationTracking();
+                } else {
+                  document.getElementById("orientationData").innerHTML =
+                    '<div class="error-message">Izin sensor orientasi ditolak</div>';
+                }
+              })
+              .catch(console.error);
+          } else {
+            startOrientationTracking();
+          }
+        } else {
+          document.getElementById("orientationData").innerHTML =
+            '<div class="error-message">Sensor orientasi tidak didukung oleh perangkat ini</div>';
+        }
+      }
+
+      function startOrientationTracking() {
+        window.addEventListener("deviceorientation", (event) => {
+          const alpha = event.alpha ? event.alpha.toFixed(1) : 0;
+          const beta = event.beta ? event.beta.toFixed(1) : 0;
+          const gamma = event.gamma ? event.gamma.toFixed(1) : 0;
+
+          document.getElementById("alphaValue").textContent = alpha + "°";
+          document.getElementById("betaValue").textContent = beta + "°";
+          document.getElementById("gammaValue").textContent = gamma + "°";
+
+          // Bar progress (alpha: 0-360, beta: -180 to 180, gamma: -90 to 90)
+          document.getElementById("alphaBar").style.width =
+            (event.alpha / 360) * 100 + "%";
+          document.getElementById("betaBar").style.width =
+            ((event.beta + 180) / 360) * 100 + "%";
+          document.getElementById("gammaBar").style.width =
+            ((event.gamma + 90) / 180) * 100 + "%";
+        });
+
+        document.getElementById("orientationStatus").classList.add("active");
+      }
+
+      // ==================== SENSOR AKSELEROMETER ====================
+
+      function initAccelerometer() {
+        if (window.DeviceMotionEvent) {
+          // Cek apakah perlu request permission (iOS 13+)
+          if (typeof DeviceMotionEvent.requestPermission === "function") {
+            DeviceMotionEvent.requestPermission()
+              .then((permissionState) => {
+                if (permissionState === "granted") {
+                  startAccelerometerTracking();
+                } else {
+                  document.getElementById("accelData").innerHTML =
+                    '<div class="error-message">Izin akselerometer ditolak</div>';
+                }
+              })
+              .catch(console.error);
+          } else {
+            startAccelerometerTracking();
+          }
+        } else {
+          document.getElementById("accelData").innerHTML =
+            '<div class="error-message">Akselerometer tidak didukung oleh perangkat ini</div>';
+        }
+      }
+
+      function startAccelerometerTracking() {
+        window.addEventListener("devicemotion", (event) => {
+          const accel = event.accelerationIncludingGravity;
+
+          if (accel) {
+            const x = accel.x ? accel.x.toFixed(2) : 0;
+            const y = accel.y ? accel.y.toFixed(2) : 0;
+            const z = accel.z ? accel.z.toFixed(2) : 0;
+
+            document.getElementById("accelXValue").textContent = x + " m/s²";
+            document.getElementById("accelYValue").textContent = y + " m/s²";
+            document.getElementById("accelZValue").textContent = z + " m/s²";
+
+            // Bar progress (normalized to -20 to 20 range)
+            document.getElementById("accelXBar").style.width =
+              Math.min((Math.abs(accel.x) / 20) * 100, 100) + "%";
+            document.getElementById("accelYBar").style.width =
+              Math.min((Math.abs(accel.y) / 20) * 100, 100) + "%";
+            document.getElementById("accelZBar").style.width =
+              Math.min((Math.abs(accel.z) / 20) * 100, 100) + "%";
+          }
+        });
+
+        document.getElementById("accelStatus").classList.add("active");
+      }
+
+      // ==================== EVENT LISTENERS ====================
+
+      startCameraBtn.addEventListener("click", startCamera);
+      stopCameraBtn.addEventListener("click", stopCamera);
+      toggleTorchBtn.addEventListener("click", toggleTorch);
+
+      // ==================== INISIALISASI ====================
+
+      // Inisialisasi semua sensor saat halaman dimuat
+      window.addEventListener("load", () => {
+        initLightSensor();
+        initOrientationSensor();
+        initAccelerometer();
+      });
+
+      // Cleanup saat halaman ditutup
+      window.addEventListener("beforeunload", () => {
+        stopCamera();
+        if (lightSensor) {
+          lightSensor.stop();
+        }
+      });
+    </script>
+  </body>
+</html>
