@@ -1,0 +1,23 @@
+{
+  "name": "Smart Flashlight AI",
+  "short_name": "Flashlight",
+  "description": "Web AI yang menyalakan senter otomatis saat gelap atau ada gerakan.",
+  "start_url": "https://ausid0910.github.io/JST/",
+  "display": "standalone",
+  "background_color": "#0a0a23",
+  "theme_color": "#00ffcc",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "cuate.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "pana.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "lang": "id"
+}
