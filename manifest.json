@@ -1,0 +1,20 @@
+{
+  "name": "Smart Flashlight JST",
+  "short_name": "SmartLight",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a1020",
+  "theme_color": "#00b7ff",
+  "icons": [
+    {
+      "src": "cuate.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "pana.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
