@@ -1,0 +1,26 @@
+// service-worker.js (simpan di root JST/)
+const CACHE_NAME = "senter-v1";
+const FILES_TO_CACHE = [
+  "/",
+  "/JST/index.html",
+  "/JST/manifest.json",
+  "/JST/cuate.png",
+  "/JST/pana.png",
+];
+
+self.addEventListener("install", (evt) => {
+  evt.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (evt) => {
+  evt.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("fetch", (evt) => {
+  evt.respondWith(
+    caches.match(evt.request).then((resp) => resp || fetch(evt.request))
+  );
+});
