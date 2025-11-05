@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Senter Pintar Berbasis JST</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, #0a0f23 0%, #111c40 100%);
+        color: #e0e8ff;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+      }
+      h1 {
+        color: #45caff;
+      }
+      video {
+        width: 100%;
+        max-width: 360px;
+        border-radius: 10px;
+        margin-top: 12px;
+        background: #000;
+      }
+      .info {
+        margin-top: 12px;
+        font-size: 15px;
+      }
+      .bar {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        height: 14px;
+        overflow: hidden;
+        margin: 4px auto;
+        width: 80%;
+      }
+      .bar > div {
+        height: 100%;
+        background: linear-gradient(90deg, #45caff, #00ffb0);
+        width: 0%;
+        transition: width 0.2s;
+      }
+      .output-box {
+        margin-top: 20px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .on {
+        color: #00ffb0;
+        font-weight: bold;
+      }
+      .off {
+        color: #ff5a5a;
+        font-weight: bold;
+      }
+      button {
+        background: linear-gradient(90deg, #45caff, #00ffb0);
+        color: #001;
+        font-weight: bold;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔦 Senter Pintar Berbasis JST</h1>
+    <p>
+      Aplikasi ini menggunakan dua input JST: <b>gelap</b> dan
+      <b>gerakan</b> untuk menyalakan senter otomatis.
+    </p>
+
+    <video id="video" autoplay playsinline></video>
+
+    <div class="info">Cahaya (0–1)</div>
+    <div class="bar"><div id="barLight"></div></div>
+    <div id="lightVal">0.00</div>
+
+    <div class="info">Gerakan (0–1)</div>
+    <div class="bar"><div id="barMotion"></div></div>
+    <div id="motionVal">0.00</div>
+
+    <div class="output-box">
+      <div>Output JST: <span id="outputVal">0.00</span></div>
+      <div>Status: <span id="status" class="off">SENTER OFF</span></div>
+    </div>
+
+    <button id="startBtn">Mulai Kamera</button>
+    <button id="stopBtn">Hentikan</button>
+
+    <script>
+      let videoStream = null,
+        videoTrack = null;
+      let canvas = document.createElement("canvas");
+      let ctx = canvas.getContext("2d");
+      let prevFrame = null;
+
+      // JST sederhana (Perceptron)
+      const weights = { light: -1.2, motion: 0.8 }; // bobot awal
+      const bias = 0.3; // bias awal
+
+      function perceptron(light, motion) {
+        // light (0=gelap, 1=terang) → jadi kita ubah arah logika: 1 - light
+        let inputLight = 1 - light;
+        let inputMotion = motion;
+        let sum =
+          inputLight * weights.light + inputMotion * weights.motion + bias;
+        let output = 1 / (1 + Math.exp(-sum)); // fungsi aktivasi sigmoid
+        return output;
+      }
+
+      // mulai kamera
+      async function startCamera() {
+        try {
+          videoStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment",
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+            },
+          });
+          videoTrack = videoStream.getVideoTracks()[0];
+          video.srcObject = videoStream;
+          detect();
+        } catch (e) {
+          alert("Gagal akses kamera: " + e.message);
+        }
+      }
+
+      // hentikan kamera
+      function stopCamera() {
+        if (videoStream) {
+          videoStream.getTracks().forEach((t) => t.stop());
+          videoStream = null;
+          videoTrack = null;
+        }
+      }
+
+      // deteksi cahaya dan gerakan
+      function detect() {
+        if (!video.srcObject) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = frame.data;
+
+        // hitung kecerahan
+        let total = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          total += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        }
+        let avgLight = total / (data.length / 4);
+        let normLight = Math.min(1, Math.max(0, avgLight / 255)); // normalisasi 0-1
+
+        // deteksi gerakan
+        let motionLevel = 0;
+        if (prevFrame) {
+          let diff = 0;
+          const prev = prevFrame.data;
+          for (let i = 0; i < data.length; i += 40) {
+            diff +=
+              Math.abs(data[i] - prev[i]) +
+              Math.abs(data[i + 1] - prev[i + 1]) +
+              Math.abs(data[i + 2] - prev[i + 2]);
+          }
+          motionLevel = diff / (data.length / 40);
+        }
+        let normMotion = Math.min(1, Math.max(0, motionLevel / 100));
+
+        // update tampilan
+        document.getElementById("lightVal").textContent = normLight.toFixed(2);
+        document.getElementById("motionVal").textContent =
+          normMotion.toFixed(2);
+        document.getElementById("barLight").style.width = normLight * 100 + "%";
+        document.getElementById("barMotion").style.width =
+          normMotion * 100 + "%";
+
+        // jalankan JST
+        const output = perceptron(normLight, normMotion);
+        document.getElementById("outputVal").textContent = output.toFixed(2);
+
+        // ambang aktifasi (0.5)
+        if (output > 0.5) {
+          document.getElementById("status").textContent = "SENTER ON";
+          document.getElementById("status").className = "on";
+          // coba nyalakan senter jika didukung
+          enableTorch(true);
+        } else {
+          document.getElementById("status").textContent = "SENTER OFF";
+          document.getElementById("status").className = "off";
+          enableTorch(false);
+        }
+
+        prevFrame = frame;
+        requestAnimationFrame(detect);
+      }
+
+      // kontrol senter
+      async function enableTorch(on) {
+        if (!videoTrack) return;
+        try {
+          const caps = videoTrack.getCapabilities();
+          if (caps.torch) {
+            await videoTrack.applyConstraints({ advanced: [{ torch: on }] });
+          }
+        } catch (e) {
+          console.warn("Torch tidak bisa diubah:", e);
+        }
+      }
+
+      // event tombol
+      document.getElementById("startBtn").onclick = startCamera;
+      document.getElementById("stopBtn").onclick = stopCamera;
+    </script>
+  </body>
+</html>
